@@ -1,0 +1,148 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Engine V3 (Fixed)</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; max-width: 900px; margin: 20px auto; padding: 20px; }
+        h1 { color: #2c3e50; text-align: center; }
+        .upload-section { background: #e8f4fd; border: 2px dashed #3498db; padding: 20px; text-align: center; border-radius: 10px; margin-bottom: 20px; }
+        .upload-btn { background: #3498db; color: white; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-weight: bold; display: inline-block; }
+        input[type="file"] { display: none; }
+        .search-section { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); text-align: center; }
+        input[type="text"] { width: 70%; padding: 15px; border: 2px solid #ddd; border-radius: 8px; font-size: 1rem; }
+        button.ask-btn { padding: 15px 30px; background: #27ae60; color: white; border: none; border-radius: 8px; font-size: 1rem; cursor: pointer; margin-left: 10px;}
+        
+        .pipeline { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 30px; opacity: 0.6; transition: opacity 0.5s; }
+        .pipeline.active { opacity: 1; }
+        .stage-card { background: white; padding: 20px; border-radius: 10px; border-top: 5px solid #ccc; min-height: 200px; }
+        .stage-r { border-color: #e67e22; }
+        .stage-a { border-color: #9b59b6; }
+        .stage-g { border-color: #2ecc71; }
+        .code-block { background: #282c34; color: #abb2bf; padding: 10px; border-radius: 5px; font-family: monospace; white-space: pre-wrap; margin-top: 10px; height: 150px; overflow-y: auto; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+
+    <h1>RAG Engine V3</h1>
+    <p style="text-align:center; color:#777;">Now with Enter-Key support and Error Checking</p>
+
+    <div class="upload-section">
+        <label class="upload-btn">📂 Load Knowledge Base File<input type="file" id="fileInput"></label>
+        <div id="db-status" style="margin-top:10px; font-weight:bold; color:#555;">Status: Loaded Demo Data (3 items)</div>
+    </div>
+
+    <div class="search-section">
+        <input type="text" id="userQuery" placeholder="Type a question and hit Enter...">
+        <button class="ask-btn" onclick="runRAG()">Ask AI</button>
+    </div>
+
+    <div class="pipeline" id="pipeline">
+        <div class="stage-card stage-r"><h3>1. RETRIEVAL</h3><div class="code-block" id="log-r">Waiting for input...</div></div>
+        <div class="stage-card stage-a"><h3>2. AUGMENTATION</h3><div class="code-block" id="log-a">Waiting...</div></div>
+        <div class="stage-card stage-g"><h3>3. GENERATION</h3><div class="code-block" id="log-g">Waiting...</div></div>
+    </div>
+
+    <script>
+        // --- 1. DEFAULT DATA ---
+        let knowledgeBase = [
+            { topic: "Secret Code", keywords: ["god mode", "cheat"], content: "CHEAT CODE ACTIVATED: Unlimited Power." },
+            { topic: "Wifi", keywords: ["wifi", "password", "internet"], content: "Wifi Password: 'Guest2025!'." },
+            { topic: "Bio", keywords: ["bio", "about"], content: "I am an Associate at Booz Allen." }
+        ];
+
+        // --- 2. FILE UPLOAD LOGIC ---
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const lines = e.target.result.trim().split('\n');
+                const newDB = [];
+                lines.forEach(line => {
+                    const parts = line.split('|');
+                    if (parts.length >= 3) {
+                        newDB.push({
+                            topic: parts[0].trim(),
+                            keywords: parts[1].trim().toLowerCase().split(',').map(k => k.trim()),
+                            content: parts[2].trim()
+                        });
+                    }
+                });
+                if (newDB.length > 0) {
+                    knowledgeBase = newDB;
+                    document.getElementById('db-status').innerText = `✅ Loaded ${newDB.length} items from file!`;
+                    document.getElementById('db-status').style.color = "green";
+                } else {
+                    alert("Error: File format incorrect. Use: Topic | Keywords | Content");
+                }
+            };
+            reader.readAsText(file);
+        });
+
+        // --- 3. ENTER KEY LISTENER (NEW!) ---
+        document.getElementById("userQuery").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                runRAG();
+            }
+        });
+
+        // --- 4. RAG ENGINE ---
+        async function runRAG() {
+            console.log("Starting RAG...");
+            const query = document.getElementById('userQuery').value.toLowerCase();
+            const pipeline = document.getElementById('pipeline');
+            const logR = document.getElementById('log-r');
+            
+            if (!query) {
+                logR.innerText = "⚠️ Please type a question first.";
+                return;
+            }
+
+            // Reset UI
+            pipeline.classList.add('active');
+            logR.innerText = "Scanning database...";
+            document.getElementById('log-a').innerText = "Waiting...";
+            document.getElementById('log-g').innerText = "Waiting...";
+
+            // Wait 0.5 seconds for effect
+            await new Promise(r => setTimeout(r, 500));
+
+            // RETRIEVAL
+            let bestDoc = null;
+            let highestMatch = 0;
+
+            knowledgeBase.forEach(doc => {
+                let matchCount = 0;
+                doc.keywords.forEach(word => {
+                    if (query.includes(word)) matchCount++;
+                });
+                if (matchCount > highestMatch) {
+                    highestMatch = matchCount;
+                    bestDoc = doc;
+                }
+            });
+
+            if (bestDoc) {
+                logR.innerText = `> FOUND: ${bestDoc.topic}\n> MATCH: ${highestMatch} keywords\n\nCONTENT:\n"${bestDoc.content}"`;
+            } else {
+                logR.innerText = "❌ No matching keywords found.\nTry words like: wifi, bio, or terms from your file.";
+                document.getElementById('log-a').innerText = "Aborted.";
+                document.getElementById('log-g').innerText = "I cannot answer that.";
+                return;
+            }
+
+            // AUGMENTATION
+            await new Promise(r => setTimeout(r, 500));
+            const prompt = `SYSTEM: You are a helpful assistant.\nCONTEXT: ${bestDoc.content}\nUSER QUESTION: ${document.getElementById('userQuery').value}`;
+            document.getElementById('log-a').innerText = prompt;
+
+            // GENERATION
+            await new Promise(r => setTimeout(r, 800));
+            document.getElementById('log-g').innerText = `(AI Output)\n\nBased on your records:\n"${bestDoc.content}"`;
+        }
+    </script>
+</body>
+</html>

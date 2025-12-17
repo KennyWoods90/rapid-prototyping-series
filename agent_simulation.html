@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Workflow Simulator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #1a1a2e;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 { text-align: center; color: #4ecca3; }
+        p { text-align: center; color: #a6a6a6; }
+
+        /* Controls */
+        .controls {
+            text-align: center;
+            margin-bottom: 30px;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            cursor: pointer;
+            font-weight: bold;
+            border: none;
+            border-radius: 5px;
+            margin: 0 10px;
+        }
+
+        .btn-add { background-color: #4ecca3; color: #1a1a2e; }
+        .btn-agent { background-color: #e94560; color: white; }
+        .btn-add:hover { background-color: #3dbb92; }
+
+        /* The Board Layout */
+        .board {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .column {
+            background: #16213e;
+            padding: 15px;
+            border-radius: 10px;
+            min-height: 400px;
+        }
+
+        .column h2 {
+            text-align: center;
+            border-bottom: 2px solid #0f3460;
+            padding-bottom: 10px;
+            margin-top: 0;
+        }
+
+        /* Task Cards */
+        .task-card {
+            background: #0f3460;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            border-left: 4px solid #4ecca3;
+            animation: fadeIn 0.5s;
+            position: relative;
+        }
+
+        .progress-bg {
+            background: #1a1a2e;
+            height: 6px;
+            border-radius: 3px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #e94560;
+            width: 0%;
+            transition: width 0.2s;
+        }
+
+        /* Agent Badges */
+        .agent-badge {
+            display: inline-block;
+            background: #e94560;
+            color: white;
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-left: 10px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Stats Log */
+        #log {
+            margin-top: 20px;
+            font-family: monospace;
+            color: #4ecca3;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Agentic AI Workflow Simulator</h1>
+    <p>You set the strategy. The Agents execute autonomously.</p>
+
+    <div class="controls">
+        <button class="btn-add" onclick="createTask()">+ Add New Task</button>
+        <button class="btn-agent" onclick="spawnAgent()">+ Deploy AI Agent</button>
+    </div>
+
+    <div class="board">
+        <div class="column" id="col-todo">
+            <h2>BACKLOG (Pending)</h2>
+            <div id="list-todo"></div>
+        </div>
+
+        <div class="column" id="col-doing">
+            <h2>ACTIVE PROCESSING</h2>
+            <div id="list-doing"></div>
+        </div>
+
+        <div class="column" id="col-done">
+            <h2>COMPLETED OUTPUTS</h2>
+            <div id="list-done"></div>
+        </div>
+    </div>
+
+    <div id="log">System Status: Waiting for input...</div>
+
+    <script>
+        // --- SYSTEM STATE ---
+        let taskIdCounter = 1;
+        let agentIdCounter = 1;
+        const agents = []; // Array to store our "AI" workers
+        const tasks = [];  // Array to store task data
+
+        // --- CLASSES ---
+
+        // 1. The Task Object
+        class Task {
+            constructor(name) {
+                this.id = taskIdCounter++;
+                this.name = name;
+                this.progress = 0;
+                this.status = 'todo'; // todo, doing, done
+                this.assignedAgent = null;
+                this.difficulty = Math.floor(Math.random() * 50) + 20; // Random difficulty
+            }
+        }
+
+        // 2. The Agent Object
+        class Agent {
+            constructor() {
+                this.id = agentIdCounter++;
+                this.name = "Agent-" + this.id;
+                this.status = 'idle'; // idle, working
+                this.processingSpeed = Math.random() * 1.5 + 0.5; // Random speed
+            }
+
+            // The "Brain" of the Agent
+            decide() {
+                if (this.status === 'idle') {
+                    // Look for work in the 'todo' pile
+                    const job = tasks.find(t => t.status === 'todo');
+                    if (job) {
+                        this.startJob(job);
+                    }
+                }
+            }
+
+            startJob(task) {
+                this.status = 'working';
+                task.status = 'doing';
+                task.assignedAgent = this.name;
+                
+                // Move UI element visually
+                moveTaskElement(task.id, 'list-todo', 'list-doing');
+                updateTaskUI(task); // Show the agent name on the card
+                
+                log(`🤖 ${this.name} claimed task: ${task.name}`);
+            }
+
+            work(task) {
+                if (task.progress < 100) {
+                    task.progress += this.processingSpeed;
+                    updateProgressBar(task.id, task.progress);
+                } else {
+                    this.completeJob(task);
+                }
+            }
+
+            completeJob(task) {
+                task.status = 'done';
+                moveTaskElement(task.id, 'list-doing', 'list-done');
+                
+                this.status = 'idle';
+                task.assignedAgent = null;
+                log(`✅ ${this.name} finished ${task.name}!`);
+            }
+        }
+
+        // --- CONTROL FUNCTIONS ---
+
+        function createTask() {
+            const taskNames = ["Analyze Data", "Generate Report", "Optimize Code", "Update Database", "Email Client", "Security Scan"];
+            const randomName = taskNames[Math.floor(Math.random() * taskNames.length)] + " " + Math.floor(Math.random()*100);
+            
+            const newTask = new Task(randomName);
+            tasks.push(newTask);
+            
+            // Create HTML Element
+            const el = document.createElement('div');
+            el.className = 'task-card';
+            el.id = `task-${newTask.id}`;
+            el.innerHTML = `
+                <strong>${newTask.name}</strong>
+                <span id="badge-${newTask.id}"></span>
+                <div class="progress-bg">
+                    <div class="progress-fill" id="bar-${newTask.id}"></div>
+                </div>
+            `;
+            document.getElementById('list-todo').appendChild(el);
+        }
+
+        function spawnAgent() {
+            const newAgent = new Agent();
+            agents.push(newAgent);
+            log(`🚀 New Agent Deployed: ${newAgent.name} (Speed: ${newAgent.processingSpeed.toFixed(1)})`);
+        }
+
+        // --- UI HELPERS ---
+
+        function moveTaskElement(taskId, fromListId, toListId) {
+            const card = document.getElementById(`task-${taskId}`);
+            document.getElementById(toListId).appendChild(card);
+        }
+
+        function updateProgressBar(taskId, value) {
+            const bar = document.getElementById(`bar-${taskId}`);
+            if(bar) bar.style.width = value + "%";
+        }
+
+        function updateTaskUI(task) {
+            const badge = document.getElementById(`badge-${task.id}`);
+            badge.innerHTML = `<span class="agent-badge">${task.assignedAgent}</span>`;
+        }
+
+        function log(msg) {
+            const logBox = document.getElementById('log');
+            logBox.innerText = msg;
+        }
+
+        // --- THE "GAME LOOP" ---
+        // This runs 60 times a second, like a real software engine
+        setInterval(() => {
+            // 1. Ask every agent to make a decision
+            agents.forEach(agent => {
+                if (agent.status === 'idle') {
+                    agent.decide();
+                } else if (agent.status === 'working') {
+                    // Find the task they are working on
+                    const myTask = tasks.find(t => t.assignedAgent === agent.name && t.status === 'doing');
+                    if (myTask) {
+                        agent.work(myTask);
+                    }
+                }
+            });
+        }, 50); // Updates every 50ms
+
+    </script>
+</body>
+</html>

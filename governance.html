@@ -1,0 +1,865 @@
+<<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Governance & Fluency Framework</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 600px; 
+            margin-left: auto; 
+            margin-right: auto; 
+            height: 350px; 
+            max-height: 400px; 
+        } 
+        @media (min-width: 768px) { 
+            .chart-container { height: 400px; } 
+        }
+        .tab-active {
+            border-bottom: 3px solid #1e3a8a; /* blue-900 */
+            color: #1e3a8a;
+            font-weight: 600;
+        }
+        .tab-inactive {
+            color: #64748b; /* slate-500 */
+            border-bottom: 3px solid transparent;
+        }
+        .tab-inactive:hover {
+            color: #334155;
+            border-bottom: 3px solid #cbd5e1;
+        }
+        .step-line {
+            position: absolute;
+            top: 24px;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background-color: #e2e8f0;
+            z-index: 0;
+        }
+        /* Loading Animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #1e3a8a;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .ai-sparkle-btn {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+            transition: all 0.3s ease;
+        }
+        .ai-sparkle-btn:hover {
+            filter: brightness(110%);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        /* Modal Overlay */
+        .modal-overlay {
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+        }
+    </style>
+    <!-- Chosen Palette: "Regulated Trust" - Navy Blue (#1e3a8a), Slate Grey (#64748b), Muted Gold (#d97706), Off-White Background (#f8fafc) -->
+    <!-- Application Structure Plan: 
+         1. Hero/Intro: Context setting.
+         2. Tabbed Navigation: Allows jumping between logical "Learning Modules".
+         3. Modules: Fundamentals, Agent vs Agentic, Lifecycle, Risk, Evaluation.
+         4. Settings: New modal to handle API Key input safely without code editing.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Navigation Bar -->
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-2xl mr-2">⚖️</span>
+                    <span class="font-bold text-xl text-slate-900 tracking-tight">AI Governance <span class="text-blue-900">Framework</span></span>
+                </div>
+                <div class="hidden md:flex space-x-4 items-center">
+                    <button onclick="switchTab('fundamentals')" id="nav-fundamentals" class="tab-active px-3 py-2 text-sm font-medium transition-colors">Fundamentals</button>
+                    <button onclick="switchTab('agents')" id="nav-agents" class="tab-inactive px-3 py-2 text-sm font-medium transition-colors">Agents</button>
+                    <button onclick="switchTab('lifecycle')" id="nav-lifecycle" class="tab-inactive px-3 py-2 text-sm font-medium transition-colors">Lifecycle</button>
+                    <button onclick="switchTab('risk')" id="nav-risk" class="tab-inactive px-3 py-2 text-sm font-medium transition-colors">Risk</button>
+                    <button onclick="switchTab('evaluation')" id="nav-evaluation" class="tab-inactive px-3 py-2 text-sm font-medium transition-colors">Evaluation</button>
+                    
+                    <!-- New Settings Button -->
+                    <button onclick="toggleSettings()" class="ml-4 text-slate-500 hover:text-blue-900 transition-colors" title="API Settings">
+                        ⚙️ Settings
+                    </button>
+                </div>
+                <!-- Mobile menu button placeholder -->
+                <div class="md:hidden flex items-center gap-4">
+                    <button onclick="toggleSettings()" class="text-slate-500">⚙️</button>
+                    <button class="text-slate-500 font-bold" onclick="alert('Please use a desktop for the best experience.')">Menu</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- API Key Settings Modal -->
+    <div id="settings-modal" class="hidden fixed inset-0 modal-overlay z-[60] flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 animate-fade-in">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-slate-900">App Settings</h3>
+                <button onclick="toggleSettings()" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
+            </div>
+            
+            <div class="mb-6">
+                <label class="block text-sm font-bold text-slate-700 mb-2">Google Gemini API Key</label>
+                <p class="text-xs text-slate-500 mb-3">
+                    Required for "Red Team Auditor" and "Jargon Buster". 
+                    Your key is stored securely in your browser (LocalStorage).
+                </p>
+                <input type="password" id="api-key-input" placeholder="Paste key here (starts with AIza...)" class="w-full p-3 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 outline-none font-mono text-sm">
+                <p class="text-xs text-blue-600 mt-2">
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" class="underline hover:text-blue-800">Get a free key here</a>
+                </p>
+            </div>
+
+            <div class="flex justify-end gap-3">
+                <button onclick="toggleSettings()" class="px-4 py-2 text-slate-600 font-medium hover:bg-slate-100 rounded">Cancel</button>
+                <button onclick="saveApiKey()" class="px-4 py-2 bg-blue-900 text-white font-bold rounded hover:bg-blue-800 transition-colors">Save Key</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Container -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- Header/Hero Section -->
+        <div class="mb-10 text-center max-w-3xl mx-auto">
+            <h1 class="text-4xl font-extrabold text-slate-900 mb-4">Adopting AI with Discipline</h1>
+            <p class="text-lg text-slate-600">
+                A playbook for non-technical leaders to guide AI efforts from idea to sustainment. 
+                Focus on judgment, governance, and accountability—not engineering.
+            </p>
+        </div>
+
+        <!-- MODULE 1: FUNDAMENTALS -->
+        <section id="fundamentals" class="space-y-8 animate-fade-in block">
+            <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-900">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">1. AI Fundamentals for Leaders</h2>
+                <p class="text-slate-600 mb-4">
+                    Before governing, we must understand. This section demystifies the core mechanics of modern AI systems 
+                    to ground expectations in reality. It explains why AI "hallucinates" and why human validation is non-negotiable.
+                </p>
+                <div class="grid md:grid-cols-2 gap-6 mt-6">
+                    <!-- Concept Card 1 -->
+                    <div class="border border-slate-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+                        <div class="flex items-center mb-3">
+                            <span class="text-3xl mr-3">📝</span>
+                            <h3 class="font-bold text-lg text-blue-900">Generative AI (Drafting)</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Models focused on predicting the next likely word or pixel based on patterns.</p>
+                        <div class="bg-slate-50 p-3 rounded text-sm border border-slate-100">
+                            <span class="font-semibold text-slate-700">Analogy:</span> An incredibly well-read improvisational actor who never says "I don't know," but instead makes up a plausible answer.
+                        </div>
+                    </div>
+                     <!-- Concept Card 2 -->
+                     <div class="border border-slate-200 rounded-lg p-5 hover:shadow-md transition-shadow">
+                        <div class="flex items-center mb-3">
+                            <span class="text-3xl mr-3">🧠</span>
+                            <h3 class="font-bold text-lg text-blue-900">Reasoning AI (Solving)</h3>
+                        </div>
+                        <p class="text-sm text-slate-600 mb-3">Newer models designed to "think" before answering, chaining multiple logical steps.</p>
+                        <div class="bg-slate-50 p-3 rounded text-sm border border-slate-100">
+                            <span class="font-semibold text-slate-700">Analogy:</span> A diligent intern who breaks a complex problem into a checklist and works through it step-by-step.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid md:grid-cols-3 gap-4">
+                    <div class="bg-amber-50 p-4 rounded-lg border border-amber-100">
+                        <h4 class="font-bold text-amber-800 mb-2">⚠️ Hallucinations</h4>
+                        <p class="text-sm text-amber-900">AI output that is fluent and confident but factually wrong. Occurs because the model prioritizes pattern matching over truth.</p>
+                    </div>
+                    <div class="bg-blue-50 p-4 rounded-lg border border-blue-100">
+                        <h4 class="font-bold text-blue-800 mb-2">👁️ Human Validation</h4>
+                        <p class="text-sm text-blue-900">AI outputs are <strong>drafts</strong>, not decisions. A human must always verify accuracy, especially in regulated contexts.</p>
+                    </div>
+                    <div class="bg-slate-100 p-4 rounded-lg border border-slate-200">
+                        <h4 class="font-bold text-slate-800 mb-2">💬 Prompting Skill</h4>
+                        <p class="text-sm text-slate-700">"Good prompting" isn't magic; it's <strong>input quality management</strong>. Structure and clarity reduce risk and improve reliability.</p>
+                    </div>
+                </div>
+
+                <!-- ✨ AI Jargon Buster Feature -->
+                <div class="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-xl p-6 relative overflow-hidden">
+                    <div class="relative z-10">
+                        <h3 class="text-lg font-bold text-blue-900 flex items-center gap-2">
+                            <span>✨</span> The "Plain English" Jargon Buster
+                        </h3>
+                        <p class="text-sm text-slate-600 mb-4 max-w-2xl">
+                            Confused by a vendor's pitch or a technical term? Enter the jargon below, and our AI Advisor will explain it using a simple non-technical analogy.
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2 max-w-xl">
+                            <input type="text" id="jargon-input" placeholder="e.g. 'RAG', 'Temperature', 'Tokenization'" class="flex-1 p-2 border border-blue-200 rounded focus:ring-2 focus:ring-blue-500 outline-none shadow-sm">
+                            <button onclick="callGeminiJargon()" id="jargon-btn" class="ai-sparkle-btn text-white px-6 py-2 rounded font-medium shadow-sm whitespace-nowrap">Explain ✨</button>
+                        </div>
+                        <div id="jargon-result" class="hidden mt-4 bg-white p-4 rounded-lg border border-blue-200 shadow-sm animate-fade-in">
+                            <!-- AI Result will go here -->
+                        </div>
+                    </div>
+                    <!-- Decorative background element -->
+                    <div class="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-100 rounded-full opacity-50 blur-xl"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 2: AGENTS VS AGENTIC -->
+        <section id="agents" class="hidden space-y-8 animate-fade-in">
+            <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-900">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">2. Governing Agents vs. Agentic AI</h2>
+                <p class="text-slate-600 mb-6">
+                    Governance requires precise language. We must distinguish between the <strong>entity</strong> (the Agent) and the <strong>behavior</strong> (Agentic).
+                    Use the toggle below to compare the governance focus for each.
+                </p>
+
+                <!-- Comparison Interactive -->
+                <div class="flex justify-center mb-8">
+                    <div class="bg-slate-200 p-1 rounded-full inline-flex">
+                        <button onclick="toggleAgentView('agent')" id="btn-agent" class="bg-white shadow-sm px-6 py-2 rounded-full font-bold text-blue-900 transition-all">AI Agent (The Noun)</button>
+                        <button onclick="toggleAgentView('agentic')" id="btn-agentic" class="px-6 py-2 rounded-full font-medium text-slate-600 transition-all hover:text-slate-800">Agentic AI (The Adjective)</button>
+                    </div>
+                </div>
+
+                <div id="view-agent" class="grid md:grid-cols-2 gap-8 items-start transition-all duration-300">
+                    <div class="bg-slate-50 p-6 rounded-xl border border-slate-200">
+                        <div class="text-4xl mb-4">🤖</div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">The AI Agent (Digital Worker)</h3>
+                        <p class="text-slate-600 mb-4">A software entity with a specific identity, scope, and set of tools. Think of it like a digital employee.</p>
+                        <ul class="space-y-2 text-sm text-slate-700">
+                            <li class="flex items-start"><span class="mr-2 text-blue-600">✓</span>Example: A Procurement Bot authorized to approve invoices under $500.</li>
+                            <li class="flex items-start"><span class="mr-2 text-blue-600">✓</span>Focus: Identity, Access Control, Permissions.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-blue-900 text-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold text-blue-100 mb-4 uppercase tracking-wider">Leadership Question</h3>
+                        <p class="text-2xl font-bold mb-6">"What systems can this software touch?"</p>
+                        <div class="border-t border-blue-700 pt-4">
+                            <h4 class="font-bold text-blue-200 mb-2">Governance Priority:</h4>
+                            <p>Identity & Access Management (IAM). Treat the agent like a new hire—give it least-privilege access.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="view-agentic" class="hidden grid md:grid-cols-2 gap-8 items-start transition-all duration-300">
+                    <div class="bg-amber-50 p-6 rounded-xl border border-amber-200">
+                        <div class="text-4xl mb-4">⚙️</div>
+                        <h3 class="text-xl font-bold text-slate-900 mb-2">Agentic AI (Autonomous Mode)</h3>
+                        <p class="text-slate-600 mb-4">A system's capability to act autonomously, seek goals, reason through problems, and self-correct.</p>
+                        <ul class="space-y-2 text-sm text-slate-700">
+                            <li class="flex items-start"><span class="mr-2 text-amber-600">✓</span>Example: A system that decides <em>how</em> to research a market trend without explicit step-by-step instructions.</li>
+                            <li class="flex items-start"><span class="mr-2 text-amber-600">✓</span>Focus: Reasoning, Guardrails, Error Handling.</li>
+                        </ul>
+                    </div>
+                    <div class="bg-slate-800 text-white p-6 rounded-xl shadow-lg">
+                        <h3 class="text-lg font-semibold text-slate-300 mb-4 uppercase tracking-wider">Leadership Question</h3>
+                        <p class="text-2xl font-bold mb-6">"How independent is this process?"</p>
+                        <div class="border-t border-slate-600 pt-4">
+                            <h4 class="font-bold text-amber-400 mb-2">Governance Priority:</h4>
+                            <p>Oversight & Risk Control. Implement "Human-in-the-Loop" checkpoints for high-stakes actions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 3: LIFECYCLE -->
+        <section id="lifecycle" class="hidden space-y-8 animate-fade-in">
+            <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-900">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">3. The AI Lifecycle & Ownership</h2>
+                <p class="text-slate-600 mb-8">
+                    Successful AI adoption is not a one-time launch; it is a lifecycle. Most pilots fail because they lack 
+                    ownership in the "Sustainment" phase. Click a stage to see leadership responsibilities.
+                </p>
+
+                <!-- Stepper UI -->
+                <div class="relative flex justify-between items-center mb-10 px-4">
+                    <div class="step-line"></div>
+                    
+                    <button onclick="setLifecycle(1)" id="step-btn-1" class="relative z-10 w-12 h-12 rounded-full bg-blue-900 text-white font-bold flex items-center justify-center shadow hover:scale-105 transition-transform ring-4 ring-blue-100">1</button>
+                    <button onclick="setLifecycle(2)" id="step-btn-2" class="relative z-10 w-12 h-12 rounded-full bg-white text-slate-500 font-bold flex items-center justify-center shadow border-2 border-slate-200 hover:scale-105 transition-transform">2</button>
+                    <button onclick="setLifecycle(3)" id="step-btn-3" class="relative z-10 w-12 h-12 rounded-full bg-white text-slate-500 font-bold flex items-center justify-center shadow border-2 border-slate-200 hover:scale-105 transition-transform">3</button>
+                    <button onclick="setLifecycle(4)" id="step-btn-4" class="relative z-10 w-12 h-12 rounded-full bg-white text-slate-500 font-bold flex items-center justify-center shadow border-2 border-slate-200 hover:scale-105 transition-transform">4</button>
+                    <button onclick="setLifecycle(5)" id="step-btn-5" class="relative z-10 w-12 h-12 rounded-full bg-white text-slate-500 font-bold flex items-center justify-center shadow border-2 border-slate-200 hover:scale-105 transition-transform">5</button>
+                </div>
+                <div class="flex justify-between px-2 text-xs font-bold text-slate-500 uppercase tracking-wide mb-6">
+                    <span class="w-12 text-center">Intake</span>
+                    <span class="w-12 text-center">Check</span>
+                    <span class="w-12 text-center">Pilot</span>
+                    <span class="w-12 text-center">Deploy</span>
+                    <span class="w-12 text-center">Sustain</span>
+                </div>
+
+                <!-- Dynamic Content Panel -->
+                <div id="lifecycle-content" class="bg-slate-50 border border-slate-200 rounded-xl p-6 min-h-[200px]">
+                    <!-- Content injected via JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 4: RISK & HITL -->
+        <section id="risk" class="hidden space-y-8 animate-fade-in">
+            <div class="grid lg:grid-cols-2 gap-8">
+                <!-- Left: HITL Theory -->
+                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-900">
+                    <h2 class="text-2xl font-bold text-slate-900 mb-4">4. Human-in-the-Loop (HITL)</h2>
+                    <p class="text-slate-600 mb-6">
+                        HITL is not just a safety net; it is a governance requirement. The level of human involvement depends on the risk and autonomy of the system.
+                    </p>
+                    
+                    <div class="bg-slate-50 rounded-lg p-4 mb-6 border border-slate-200">
+                        <h3 class="font-bold text-slate-800 mb-2">When is HITL Mandatory?</h3>
+                        <ul class="space-y-3 text-sm">
+                            <li class="flex items-start">
+                                <span class="mr-2 text-amber-600">⚠️</span>
+                                <div><strong>Critical Outputs:</strong> Decisions affecting legal standing, finances, or personnel.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2 text-amber-600">⚠️</span>
+                                <div><strong>Task Intake:</strong> Defining the problem correctly before the AI starts.</div>
+                            </li>
+                            <li class="flex items-start">
+                                <span class="mr-2 text-amber-600">⚠️</span>
+                                <div><strong>Audit Reviews:</strong> Periodic sampling of AI work to check for drift or bias.</div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-blue-50 rounded-lg p-4 border border-blue-100">
+                        <h4 class="font-bold text-blue-900 mb-2">Data Privacy Rules 🛡️</h4>
+                        <p class="text-sm text-blue-800 mb-2"><strong>Never enter:</strong> PII (Personally Identifiable Information), Trade Secrets, or Unreleased Financials into public models.</p>
+                        <p class="text-sm text-blue-800"><strong>Enterprise Trust:</strong> Use isolated instances where data is not used to train the vendor's model.</p>
+                    </div>
+                </div>
+
+                <!-- Right: Radar Chart Visualizer -->
+                <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-amber-600">
+                    <h2 class="text-xl font-bold text-slate-900 mb-4">Risk Profile Visualizer</h2>
+                    <p class="text-sm text-slate-500 mb-4">
+                        Select a scenario to see how Autonomy, Risk, and Oversight needs interact.
+                    </p>
+
+                    <div class="flex space-x-2 mb-6">
+                        <button onclick="updateChart('drafting')" class="flex-1 py-2 px-2 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold text-slate-700">Drafting Email</button>
+                        <button onclick="updateChart('research')" class="flex-1 py-2 px-2 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold text-slate-700">Market Research</button>
+                        <button onclick="updateChart('agent')" class="flex-1 py-2 px-2 bg-slate-100 hover:bg-slate-200 rounded text-xs font-bold text-slate-700">Auto-Procurement</button>
+                    </div>
+
+                    <div class="flex flex-col">
+                        <div class="chart-container">
+                            <canvas id="riskRadarChart"></canvas>
+                        </div>
+                    </div>
+                    
+                    <div id="chart-caption" class="mt-4 text-sm text-center font-medium text-slate-600">
+                        <!-- Dynamic caption -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- MODULE 5: EVALUATION TOOL -->
+        <section id="evaluation" class="hidden space-y-8 animate-fade-in">
+            <div class="bg-white rounded-lg shadow-sm p-6 border-l-4 border-blue-900">
+                <h2 class="text-2xl font-bold text-slate-900 mb-2">5. Use Case Evaluation Checklist</h2>
+                <p class="text-slate-600 mb-6">
+                    Evaluate opportunities based on judgment, not novelty. Answer these questions to determine readiness.
+                </p>
+
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- Standard Checklist -->
+                    <div class="space-y-4">
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                            <label class="block font-bold text-slate-800 mb-2">1. Decision Impact</label>
+                            <p class="text-xs text-slate-500 mb-2">What happens if the AI is wrong?</p>
+                            <select id="eval-impact" class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-900 outline-none">
+                                <option value="low">Low (Minor inconvenience)</option>
+                                <option value="med">Medium (Rework required)</option>
+                                <option value="high">High (Legal/Financial risk)</option>
+                            </select>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                            <label class="block font-bold text-slate-800 mb-2">2. Risk Ownership</label>
+                            <p class="text-xs text-slate-500 mb-2">Is a specific human accountable?</p>
+                            <select id="eval-owner" class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-900 outline-none">
+                                <option value="no">No / Unclear</option>
+                                <option value="yes">Yes, clearly defined</option>
+                            </select>
+                        </div>
+
+                        <div class="p-4 bg-slate-50 border border-slate-200 rounded-lg">
+                            <label class="block font-bold text-slate-800 mb-2">3. Long-term Support</label>
+                            <p class="text-xs text-slate-500 mb-2">Who maintains this after launch?</p>
+                            <select id="eval-support" class="w-full p-2 border border-slate-300 rounded focus:ring-2 focus:ring-blue-900 outline-none">
+                                <option value="none">No plan</option>
+                                <option value="it">IT Department</option>
+                                <option value="biz">Business Unit Owner</option>
+                            </select>
+                        </div>
+                        
+                        <button onclick="calculateReadiness()" class="w-full bg-slate-700 text-white font-bold py-3 rounded hover:bg-slate-800 transition-colors">Standard Assessment (Rule Based)</button>
+                    </div>
+
+                    <!-- ✨ AI Red Team Auditor -->
+                    <div class="flex flex-col">
+                        <div class="bg-gradient-to-br from-blue-900 to-indigo-900 text-white p-6 rounded-xl shadow-lg flex-grow">
+                            <div class="flex items-center justify-between mb-4">
+                                <h3 class="text-xl font-bold flex items-center gap-2">✨ "Red Team" Auditor</h3>
+                                <span class="bg-blue-800 text-xs px-2 py-1 rounded border border-blue-700">AI Powered</span>
+                            </div>
+                            <p class="text-blue-200 text-sm mb-4">
+                                Don't just check boxes. Describe your use case below, and our AI Governance Officer will try to find failure modes you missed.
+                            </p>
+                            
+                            <textarea id="ai-use-case" class="w-full h-32 p-3 text-slate-800 rounded-lg focus:ring-2 focus:ring-blue-400 outline-none text-sm mb-4" placeholder="Describe your use case... (e.g., 'An internal chatbot for HR benefits answers' or 'A tool to summarize customer support tickets')"></textarea>
+                            
+                            <button onclick="callGeminiAudit()" id="audit-btn" class="w-full ai-sparkle-btn text-white font-bold py-3 rounded shadow-lg flex items-center justify-center gap-2">
+                                <span>Find My Risks ✨</span>
+                            </button>
+
+                            <div id="audit-result" class="hidden mt-4 bg-white/10 border border-white/20 p-4 rounded-lg text-sm animate-fade-in backdrop-blur-sm">
+                                <!-- AI Result -->
+                            </div>
+                        </div>
+
+                        <!-- Standard Rule Based Result (Hidden by default) -->
+                         <div id="eval-result" class="hidden mt-4 bg-slate-100 p-4 rounded-xl text-center border border-slate-200">
+                            <h3 id="eval-title" class="font-bold text-slate-900">Result</h3>
+                            <p id="eval-desc" class="text-slate-600 text-sm">Select options and click assess.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Staying Current Section -->
+            <div class="bg-slate-100 rounded-lg p-6 border border-slate-200">
+                <h3 class="font-bold text-lg text-slate-800 mb-2">Staying Current Without Chasing Hype</h3>
+                <div class="grid md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <strong class="text-blue-900">Monitor:</strong>
+                        <ul class="list-disc pl-5 mt-1 text-slate-700">
+                            <li>Regulations (EU AI Act, NIST RMF updates)</li>
+                            <li>Liability shifts in Enterprise Contracts</li>
+                            <li>Integration in tools you already own (Microsoft, Salesforce)</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <strong class="text-amber-800">Ignore:</strong>
+                        <ul class="list-disc pl-5 mt-1 text-slate-700">
+                            <li>Flashy social media demos</li>
+                            <li>Pre-print research papers without peer review</li>
+                            <li>Marketing promising "Autonomous Employees" without oversight</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-8">
+        <div class="max-w-7xl mx-auto px-4 text-center text-slate-500 text-sm">
+            <p>Based on: "Agentic AI vs AI Agents" Advisory Report.</p>
+            <p class="mt-2">Designed for Non-Technical Leadership Decision Support.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Logic -->
+    <script>
+        // --- API KEY HANDLING (NEW) ---
+        function toggleSettings() {
+            const modal = document.getElementById('settings-modal');
+            if (modal.classList.contains('hidden')) {
+                modal.classList.remove('hidden');
+                // Pre-fill input if key exists
+                const existingKey = localStorage.getItem('gemini_api_key');
+                if (existingKey) document.getElementById('api-key-input').value = existingKey;
+            } else {
+                modal.classList.add('hidden');
+            }
+        }
+
+        function saveApiKey() {
+            const input = document.getElementById('api-key-input');
+            const key = input.value.trim();
+            if (key) {
+                localStorage.setItem('gemini_api_key', key);
+                toggleSettings();
+                alert('API Key Saved! AI features are now enabled.');
+            } else {
+                alert('Please enter a valid key.');
+            }
+        }
+
+        function getApiKey() {
+            const key = localStorage.getItem('gemini_api_key');
+            if (!key) {
+                toggleSettings();
+                alert("Please enter your Gemini API Key in Settings first.");
+                return null;
+            }
+            return key;
+        }
+
+        // --- Navigation Logic ---
+        function switchTab(tabId) {
+            // Hide all sections
+            const sections = ['fundamentals', 'agents', 'lifecycle', 'risk', 'evaluation'];
+            sections.forEach(s => {
+                document.getElementById(s).classList.add('hidden');
+                document.getElementById(`nav-${s}`).classList.replace('tab-active', 'tab-inactive');
+                document.getElementById(`nav-${s}`).classList.remove('text-blue-900', 'border-blue-900');
+            });
+
+            // Show selected
+            document.getElementById(tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            activeBtn.classList.replace('tab-inactive', 'tab-active');
+            
+            // Trigger specific inits if needed
+            if(tabId === 'lifecycle' && !lifecycleInitialized) {
+                setLifecycle(1);
+                lifecycleInitialized = true;
+            }
+            if(tabId === 'risk' && !chartInitialized) {
+                initChart();
+                chartInitialized = true;
+            }
+        }
+
+        // --- Agents vs Agentic Logic ---
+        function toggleAgentView(view) {
+            if(view === 'agent') {
+                document.getElementById('view-agent').classList.remove('hidden', 'grid');
+                document.getElementById('view-agent').classList.add('grid');
+                document.getElementById('view-agentic').classList.add('hidden');
+                document.getElementById('view-agentic').classList.remove('grid');
+                
+                document.getElementById('btn-agent').classList.add('bg-white', 'shadow-sm', 'text-blue-900');
+                document.getElementById('btn-agent').classList.remove('text-slate-600');
+                document.getElementById('btn-agentic').classList.remove('bg-white', 'shadow-sm', 'text-blue-900');
+                document.getElementById('btn-agentic').classList.add('text-slate-600');
+            } else {
+                document.getElementById('view-agentic').classList.remove('hidden', 'grid');
+                document.getElementById('view-agentic').classList.add('grid');
+                document.getElementById('view-agent').classList.add('hidden');
+                document.getElementById('view-agent').classList.remove('grid');
+
+                document.getElementById('btn-agentic').classList.add('bg-white', 'shadow-sm', 'text-blue-900');
+                document.getElementById('btn-agentic').classList.remove('text-slate-600');
+                document.getElementById('btn-agent').classList.remove('bg-white', 'shadow-sm', 'text-blue-900');
+                document.getElementById('btn-agent').classList.add('text-slate-600');
+            }
+        }
+
+        // --- Lifecycle Logic ---
+        let lifecycleInitialized = false;
+        const lifecycleData = {
+            1: {
+                title: "Intake & Scoping",
+                desc: "Defining the problem before the technology.",
+                actions: ["Define the specific decision to be supported.", "Assess data availability and sensitivity.", "Identify the human owner."],
+                risk: "Vague scope leads to solution searching for a problem."
+            },
+            2: {
+                title: "Feasibility & Risk Check",
+                desc: "Can we do this safely?",
+                actions: ["Review against Privacy/Security policies.", "Check for bias potential.", "Determine technical viability."],
+                risk: "Skipping this stage creates legal liability later."
+            },
+            3: {
+                title: "Pilot & Validation",
+                desc: "Testing in a controlled environment.",
+                actions: ["Run with a small group.", "Measure output accuracy vs authoritative sources.", "Document failure cases."],
+                risk: "Orphaned pilots that never scale due to lack of integration planning."
+            },
+            4: {
+                title: "Deployment (The Launch)",
+                desc: "Moving to production.",
+                actions: ["User training (focus on behavior change).", "Establish help/feedback channels.", "Turn on monitoring."],
+                risk: "Enthusiasm without guardrails."
+            },
+            5: {
+                title: "Sustainment & Accountability",
+                desc: "Long-term ownership.",
+                actions: ["Regular audit of outputs.", "Retraining models if data drifts.", "Quarterly risk reviews."],
+                risk: "Common Failure Point: No one owns the bot after the consulting team leaves."
+            }
+        };
+
+        function setLifecycle(step) {
+            // Update buttons
+            for(let i=1; i<=5; i++) {
+                const btn = document.getElementById(`step-btn-${i}`);
+                if(i === step) {
+                    btn.className = "relative z-10 w-12 h-12 rounded-full bg-blue-900 text-white font-bold flex items-center justify-center shadow hover:scale-105 transition-transform ring-4 ring-blue-100";
+                } else if (i < step) {
+                    btn.className = "relative z-10 w-12 h-12 rounded-full bg-blue-100 text-blue-900 font-bold flex items-center justify-center shadow hover:scale-105 transition-transform";
+                } else {
+                    btn.className = "relative z-10 w-12 h-12 rounded-full bg-white text-slate-400 font-bold flex items-center justify-center shadow border-2 border-slate-200 hover:scale-105 transition-transform";
+                }
+            }
+
+            // Update content
+            const data = lifecycleData[step];
+            const contentDiv = document.getElementById('lifecycle-content');
+            contentDiv.innerHTML = `
+                <div class="animate-fade-in">
+                    <h3 class="text-xl font-bold text-blue-900 mb-2">${step}. ${data.title}</h3>
+                    <p class="text-slate-700 font-medium mb-4">${data.desc}</p>
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div>
+                            <h4 class="text-xs font-bold uppercase text-slate-500 mb-2">Key Actions</h4>
+                            <ul class="space-y-2 text-sm text-slate-700">
+                                ${data.actions.map(a => `<li class="flex items-start"><span class="mr-2 text-blue-500">•</span>${a}</li>`).join('')}
+                            </ul>
+                        </div>
+                        <div class="bg-amber-50 p-3 rounded border border-amber-100">
+                            <h4 class="text-xs font-bold uppercase text-amber-800 mb-2">Primary Failure Point</h4>
+                            <p class="text-sm text-amber-900 italic">"${data.risk}"</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // --- Chart.js Logic (Radar) ---
+        let chartInitialized = false;
+        let myRadarChart;
+
+        function initChart() {
+            const ctx = document.getElementById('riskRadarChart').getContext('2d');
+            
+            // Initial Data: Drafting
+            const data = {
+                labels: ['Autonomy Level', 'Data Sensitivity', 'Complexity', 'Decision Impact', 'Human Oversight Need'],
+                datasets: [{
+                    label: 'Risk Profile',
+                    data: [2, 1, 2, 2, 2], // Low numbers
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgb(59, 130, 246)',
+                    pointBackgroundColor: 'rgb(59, 130, 246)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(59, 130, 246)'
+                }]
+            };
+
+            const config = {
+                type: 'radar',
+                data: data,
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: '#e2e8f0' },
+                            grid: { color: '#e2e8f0' },
+                            pointLabels: {
+                                font: { size: 11, family: 'Inter' },
+                                color: '#475569'
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 5,
+                            ticks: { stepSize: 1, display: false }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.dataset.label + ': ' + context.raw + '/5';
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
+            myRadarChart = new Chart(ctx, config);
+            document.getElementById('chart-caption').innerText = "Scenario: Drafting Assistance (Low Risk, High Control)";
+        }
+
+        function updateChart(scenario) {
+            if (!myRadarChart) return;
+
+            let newData, newColor, newBg, title;
+
+            if (scenario === 'drafting') {
+                newData = [1, 1, 2, 1, 1]; // Low across board
+                newColor = 'rgb(59, 130, 246)'; // Blue
+                newBg = 'rgba(59, 130, 246, 0.2)';
+                title = "Scenario: Drafting Email (Low Risk). Human reviews before sending.";
+            } else if (scenario === 'research') {
+                newData = [3, 2, 4, 2, 3]; // Medium
+                newColor = 'rgb(16, 185, 129)'; // Emerald
+                newBg = 'rgba(16, 185, 129, 0.2)';
+                title = "Scenario: Market Research (Med Risk). Validation needed for hallucinations.";
+            } else if (scenario === 'agent') {
+                newData = [5, 4, 5, 5, 5]; // High
+                newColor = 'rgb(217, 119, 6)'; // Amber/Orange
+                newBg = 'rgba(217, 119, 6, 0.2)';
+                title = "Scenario: Autonomous Procurement (High Risk). Strict Limits & Audit required.";
+            }
+
+            myRadarChart.data.datasets[0].data = newData;
+            myRadarChart.data.datasets[0].borderColor = newColor;
+            myRadarChart.data.datasets[0].backgroundColor = newBg;
+            myRadarChart.data.datasets[0].pointBackgroundColor = newColor;
+            myRadarChart.data.datasets[0].pointHoverBorderColor = newColor;
+            myRadarChart.update();
+            
+            document.getElementById('chart-caption').innerText = title;
+        }
+
+        // --- Evaluation Tool Logic ---
+        function calculateReadiness() {
+            const impact = document.getElementById('eval-impact').value;
+            const owner = document.getElementById('eval-owner').value;
+            const support = document.getElementById('eval-support').value;
+
+            const resultPanel = document.getElementById('eval-result');
+            const title = document.getElementById('eval-title');
+            const desc = document.getElementById('eval-desc');
+
+            resultPanel.classList.remove('hidden');
+
+            if (owner === 'no' || support === 'none') {
+                // Fail
+                resultPanel.className = "mt-4 bg-red-50 border border-red-200 p-4 rounded-xl text-center";
+                title.innerText = "🛑 High Risk: Not Ready";
+                title.className = "text-lg font-bold text-red-900 mb-1";
+                desc.innerText = "You lack clear ownership or support. Do not deploy until accountability is defined.";
+            } else if (impact === 'high' && owner === 'yes') {
+                // Caution
+                resultPanel.className = "mt-4 bg-amber-50 border border-amber-200 p-4 rounded-xl text-center";
+                title.innerText = "⚠️ Proceed with Strict HITL";
+                title.className = "text-lg font-bold text-amber-800 mb-1";
+                desc.innerText = "Ownership is good, but the impact is high. Mandatory Human-in-the-Loop validation required for every output.";
+            } else {
+                // Go
+                resultPanel.className = "mt-4 bg-green-50 border border-green-200 p-4 rounded-xl text-center";
+                title.innerText = "✅ Pilot Ready";
+                title.className = "text-lg font-bold text-green-900 mb-1";
+                desc.innerText = "Low to Medium impact with defined ownership. Proceed to Pilot phase with standard monitoring.";
+            }
+        }
+
+        // --- GEMINI API INTEGRATION (UPDATED) ---
+
+        async function callGeminiJargon() {
+            const term = document.getElementById('jargon-input').value;
+            const resultDiv = document.getElementById('jargon-result');
+            const btn = document.getElementById('jargon-btn');
+            
+            // Get Key via Settings
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            if (!term) return;
+
+            // Loading State
+            resultDiv.innerHTML = '<div class="loader"></div> <span class="text-blue-900 font-medium">Translating to plain English...</span>';
+            resultDiv.classList.remove('hidden');
+            btn.disabled = true;
+
+            const systemPrompt = "You are an expert at explaining technical AI concepts to non-technical executives using simple metaphors. Explain the term provided by the user in 1-2 sentences using a non-technical analogy. Avoid jargon.";
+            const userPrompt = `Explain this term: "${term}"`;
+
+            try {
+                const text = await fetchGemini(userPrompt, systemPrompt, apiKey);
+                resultDiv.innerHTML = `<h4 class="font-bold text-blue-900 text-sm uppercase mb-1">Definition & Analogy:</h4><p class="text-slate-700">${text}</p>`;
+            } catch (error) {
+                console.error(error);
+                resultDiv.innerHTML = `<p class="text-red-600">Error: ${error.message}. Check your API Key in settings.</p>`;
+            }
+            btn.disabled = false;
+        }
+
+        async function callGeminiAudit() {
+            const useCase = document.getElementById('ai-use-case').value;
+            const resultDiv = document.getElementById('audit-result');
+            const btn = document.getElementById('audit-btn');
+
+            // Get Key via Settings
+            const apiKey = getApiKey();
+            if (!apiKey) return;
+
+            if (!useCase) {
+                alert("Please describe your use case first.");
+                return;
+            }
+
+            // Loading State
+            resultDiv.innerHTML = '<div class="loader"></div> <span class="text-white font-medium">Red Team Auditor is analyzing risks...</span>';
+            resultDiv.classList.remove('hidden');
+            btn.disabled = true;
+
+            const systemPrompt = "You are a skeptical, experienced AI Governance Risk Officer. Your job is to identify specific failure modes in proposed AI projects. Be concise, direct, and focused on risk.";
+            const userPrompt = `Analyze the following AI use case: "${useCase}". \n\n1. Identify the single biggest specific risk (Privacy, Bias, or Accuracy).\n2. Suggest one specific control or guardrail.\n3. Rate the complexity (Low/Med/High).\n\nFormat as a bulleted list. Keep it under 100 words.`;
+
+            try {
+                const text = await fetchGemini(userPrompt, systemPrompt, apiKey);
+                const formattedText = text.replace(/\*\*/g, '<strong>').replace(/\*\*/g, '</strong>').replace(/\n/g, '<br>');
+                resultDiv.innerHTML = `<h4 class="font-bold text-blue-200 text-xs uppercase mb-2">Audit Findings:</h4><div class="text-white leading-relaxed">${formattedText}</div>`;
+            } catch (error) {
+                console.error(error);
+                resultDiv.innerHTML = `<p class="text-red-300">Error: ${error.message}. Please check your API Key in Settings.</p>`;
+            }
+            btn.disabled = false;
+        }
+
+        async function fetchGemini(userText, systemText, key) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+            const payload = {
+                contents: [{ parts: [{ text: userText }] }],
+                systemInstruction: { parts: [{ text: systemText }] }
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                if (response.status === 400 || response.status === 403) {
+                    throw new Error('Invalid API Key');
+                }
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            const data = await response.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response generated.";
+        }
+
+        // Add CSS animation class dynamically
+        document.head.insertAdjacentHTML("beforeend", `<style>.animate-fade-in { animation: fadeIn 0.5s ease-in-out; } @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }</style>`)
+
+    </script>
+</body>
+</html>

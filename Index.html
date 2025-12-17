@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rapid Prototyping Series | Keenen Woods</title>
+    <style>
+        :root {
+            --primary: #2c3e50; /* Navy */
+            --accent: #3498db;  /* Blue */
+            --bg: #f4f7f6;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 0;
+            color: #333;
+        }
+
+        /* Hero Section */
+        header {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+        }
+
+        header h1 { margin: 0; font-size: 2.5rem; }
+        header p { color: #cfd8dc; font-size: 1.2rem; margin-top: 10px; }
+
+        /* Grid Container */
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            text-decoration: none; /* Removes link underline */
+            color: inherit;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+        }
+
+        .card-header {
+            height: 8px;
+            width: 100%;
+        }
+
+        /* Color Coding the Tops of Cards */
+        .c-portfolio { background: #e74c3c; } /* Red */
+        .c-game { background: #f1c40f; }      /* Yellow */
+        .c-agents { background: #9b59b6; }     /* Purple */
+        .c-decision { background: #2ecc71; }   /* Green */
+        .c-rag { background: #3498db; }        /* Blue */
+        .c-gov { background: #34495e; }        /* Dark Grey */
+
+        .card-body {
+            padding: 25px;
+            flex-grow: 1;
+        }
+
+        h3 { margin-top: 0; color: var(--primary); }
+
+        p.desc {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.5;
+        }
+
+        .tech-tag {
+            display: inline-block;
+            background: #eee;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #555;
+            margin-top: 10px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Rapid Prototyping Series</h1>
+        <p>Bridging I/O Psychology, Systems Engineering & AI Architectures</p>
+    </header>
+
+    <div class="container">
+
+        <a href="portfolio.html" class="card">
+            <div class="card-header c-portfolio"></div>
+            <div class="card-body">
+                <h3>Human Systems Portfolio</h3>
+                <p class="desc">A responsive digital profile demonstrating the intersection of organizational psychology and technical systems engineering.</p>
+                <span class="tech-tag">HTML5 / CSS3</span>
+            </div>
+        </a>
+
+        <a href="game_v2.html" class="card">
+            <div class="card-header c-game"></div>
+            <div class="card-body">
+                <h3>Transformation Tycoon</h3>
+                <p class="desc">A gamified simulation of organizational change management, resource allocation, and stakeholder buy-in mechanics.</p>
+                <span class="tech-tag">Game Logic / State Management</span>
+            </div>
+        </a>
+
+        <a href="agent_simulation.html" class="card">
+            <div class="card-header c-agents"></div>
+            <div class="card-body">
+                <h3>Agentic Workflow Simulator</h3>
+                <p class="desc">A multi-agent system visualization where autonomous "digital workers" execute tasks using asynchronous queue theory.</p>
+                <span class="tech-tag">Autonomous Agents / Kanban</span>
+            </div>
+        </a>
+
+        <a href="decision_tool.html" class="card">
+            <div class="card-header c-decision"></div>
+            <div class="card-body">
+                <h3>Strategic Trade-Off Engine</h3>
+                <p class="desc">A Multi-Criteria Decision Analysis (MCDA) tool for weighted scoring of vendors, candidates, or career paths.</p>
+                <span class="tech-tag">File Ingestion / Data Viz</span>
+            </div>
+        </a>
+
+        <a href="rag_final.html" class="card">
+            <div class="card-header c-rag"></div>
+            <div class="card-body">
+                <h3>Glass Box RAG Engine</h3>
+                <p class="desc">A transparent simulation of Retrieval-Augmented Generation, visualizing how AI retrieves and augments data.</p>
+                <span class="tech-tag">Vector Search Logic / NLP</span>
+            </div>
+        </a>
+
+        <a href="governance.html" class="card">
+            <div class="card-header c-gov"></div>
+            <div class="card-body">
+                <h3>AI Governance Framework</h3>
+                <p class="desc">An interactive checklist ensuring ethical compliance, data privacy, and risk management in AI deployments.</p>
+                <span class="tech-tag">Risk & Compliance</span>
+            </div>
+        </a>
+
+    </div>
+
+    <footer>
+        &copy; 2025 Keenen Woods. Built to demonstrate technical literacy in AI & Systems.
+    </footer>
+
+</body>
+</html>

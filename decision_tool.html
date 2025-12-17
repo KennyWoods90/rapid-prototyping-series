@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Strategic Trade-Off Engine</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #3498db;
+            --highlight: #e74c3c;
+            --bg: #ecf0f1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--primary);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { margin-bottom: 5px; }
+        .subtitle { color: #7f8c8d; margin-bottom: 30px; font-style: italic; }
+
+        /* --- CONTROLS SECTION --- */
+        .controls-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .file-upload-btn {
+            background-color: var(--primary);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        .demo-btn {
+            background-color: transparent;
+            color: var(--accent);
+            border: 2px solid var(--accent);
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        
+        .demo-btn:hover { background-color: var(--accent); color: white; }
+
+        input[type="file"] { display: none; }
+
+        /* --- MAIN WORKSPACE --- */
+        .workspace {
+            display: grid;
+            grid-template-columns: 1fr 2fr; /* Sliders on left, Chart on right */
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+            opacity: 0.3; /* Dimmed until data is loaded */
+            pointer-events: none; /* Disabled until data is loaded */
+            transition: opacity 0.5s;
+        }
+
+        .workspace.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        /* --- SLIDERS COLUMN --- */
+        .sliders-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .slider-group { margin-bottom: 20px; }
+        .slider-label { display: flex; justify-content: space-between; font-weight: bold; font-size: 0.9rem; }
+        .slider-val { color: var(--accent); }
+        
+        input[type=range] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* --- CHART COLUMN --- */
+        .chart-panel {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .bar-container {
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+        }
+
+        .bar-label {
+            width: 120px;
+            text-align: right;
+            padding-right: 15px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .bar-track {
+            flex-grow: 1;
+            background-color: #eee;
+            height: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background-color: var(--accent);
+            width: 0%;
+            transition: width 0.3s ease-out, background-color 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        /* Highlight the winner */
+        .bar-container.winner .bar-fill { background-color: var(--highlight); }
+        .bar-container.winner .bar-label { color: var(--highlight); }
+
+    </style>
+</head>
+<body>
+
+    <h1>Strategic Trade-Off Engine</h1>
+    <span class="subtitle">Weighted Decision Analysis System</span>
+
+    <div class="controls-card">
+        <div>
+            <strong>Step 1: Data Source</strong><br>
+            <span style="font-size: 0.85rem; color: #666;">Upload a CSV (Name, Crit1, Crit2...) or use Demo Data.</span>
+        </div>
+        <div>
+            <button class="demo-btn" onclick="loadDemoData()">Load Demo Data</button>
+            
+            <label class="file-upload-btn">
+                Upload CSV File
+                <input type="file" id="csvInput" accept=".csv">
+            </label>
+        </div>
+    </div>
+
+    <div class="workspace" id="workspace">
+        
+        <div class="sliders-panel">
+            <h3 style="margin-top:0; border-bottom: 2px solid #eee; padding-bottom: 10px;">Adjust Priorities (Weights)</h3>
+            <div id="sliders-container">
+                </div>
+        </div>
+
+        <div class="chart-panel">
+            <h3 style="margin-top:0; border-bottom: 2px solid #eee; padding-bottom: 10px;">Real-Time Ranking</h3>
+            <div id="chart-container">
+                </div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GLOBAL STATE ---
+        let items = [];     // The options (e.g., Vendor A, Candidate B)
+        let criteria = [];  // The headers (e.g., Cost, Speed, Experience)
+        let weights = {};   // Current weight of each criteria (0-100)
+
+        // --- 1. FILE UPLOAD LOGIC ---
+        document.getElementById('csvInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                parseCSV(text);
+            };
+            reader.readAsText(file);
+        });
+
+        // --- 2. DEMO DATA LOGIC ---
+        function loadDemoData() {
+            // A simple CSV string simulating a hiring decision
+            // Name, Technical Skill, Leadership, Cost Efficiency, Culture Fit
+            const demoCSV = `Candidate,Technical Skill,Leadership Potential,Salary Request (Low is better),Culture Fit
+Candidate A (The Expert),95,60,40,70
+Candidate B (The Leader),60,95,50,90
+Candidate C (The Bargain),70,50,95,60
+Candidate D (The Hybrid),85,80,70,85`;
+            parseCSV(demoCSV);
+        }
+
+        // --- 3. PARSING LOGIC ---
+        function parseCSV(csvText) {
+            const lines = csvText.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim());
+
+            // Reset State
+            criteria = headers.slice(1); // All headers except the first (Name)
+            items = [];
+            weights = {};
+
+            // Parse Rows
+            for (let i = 1; i < lines.length; i++) {
+                const row = lines[i].split(',');
+                if (row.length < 2) continue;
+
+                const itemObj = { name: row[0].trim(), scores: {} };
+                
+                // Process Scores
+                criteria.forEach((crit, index) => {
+                    // Convert score to number, default to 0 if NaN
+                    itemObj.scores[crit] = parseFloat(row[index + 1]) || 0;
+                });
+                items.push(itemObj);
+            }
+
+            // Initialize Weights to 50%
+            criteria.forEach(c => weights[c] = 50);
+
+            // Build UI
+            buildUI();
+            document.getElementById('workspace').classList.add('active');
+        }
+
+        // --- 4. UI BUILDING ---
+        function buildUI() {
+            const slidersDiv = document.getElementById('sliders-container');
+            slidersDiv.innerHTML = '';
+
+            // Generate Sliders for each Criteria
+            criteria.forEach(crit => {
+                const group = document.createElement('div');
+                group.className = 'slider-group';
+                group.innerHTML = `
+                    <div class="slider-label">
+                        <span>${crit}</span>
+                        <span class="slider-val" id="val-${crit}">50%</span>
+                    </div>
+                    <input type="range" min="0" max="100" value="50" 
+                           oninput="updateWeight('${crit}', this.value)">
+                `;
+                slidersDiv.appendChild(group);
+            });
+
+            calculateAndRender();
+        }
+
+        // --- 5. CALCULATION ENGINE ---
+        function updateWeight(criteriaName, value) {
+            weights[criteriaName] = parseInt(value);
+            document.getElementById(`val-${criteriaName}`).innerText = value + "%";
+            calculateAndRender();
+        }
+
+        function calculateAndRender() {
+            // 1. Calculate weighted scores
+            items.forEach(item => {
+                let totalScore = 0;
+                let maxPossible = 0;
+
+                criteria.forEach(crit => {
+                    const weight = weights[crit];
+                    const score = item.scores[crit];
+                    
+                    totalScore += score * weight;
+                    maxPossible += 100 * weight; // Assuming max score per category is 100
+                });
+
+                // Normalize to 0-100 scale for easier viewing
+                // Avoid divide by zero
+                item.finalScore = maxPossible === 0 ? 0 : (totalScore / maxPossible) * 100;
+            });
+
+            // 2. Sort by score (Highest first)
+            items.sort((a, b) => b.finalScore - a.finalScore);
+
+            // 3. Render Chart
+            renderChart();
+        }
+
+        function renderChart() {
+            const container = document.getElementById('chart-container');
+            container.innerHTML = '';
+
+            items.forEach((item, index) => {
+                const isWinner = index === 0;
+                const div = document.createElement('div');
+                div.className = `bar-container ${isWinner ? 'winner' : ''}`;
+                
+                div.innerHTML = `
+                    <div class="bar-label">${item.name}</div>
+                    <div class="bar-track">
+                        <div class="bar-fill" style="width: ${item.finalScore.toFixed(1)}%;">
+                            ${item.finalScore.toFixed(0)}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
