@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS PRO | AI Operating System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.2/marked.min.js"></script>
+    <style>
+        body { font-family: 'Outfit', sans-serif; transition: background 0.5s ease; }
+        
+        /* Glassmorphism */
+        .glass {
+            background: rgba(255, 255, 255, 0.75);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+        .glass-dark {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        /* Themes */
+        .theme-work {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            --accent: #2563eb;
+        }
+        .theme-life {
+            background: linear-gradient(135deg, #4f46e5 0%, #be185d 100%);
+            --accent: #f43f5e;
+        }
+
+        /* Utils */
+        .hide-scroll::-webkit-scrollbar { display: none; }
+        .typing-dot {
+            animation: bounce 1.4s infinite ease-in-out both;
+            background-color: currentColor;
+            border-radius: 50%;
+            display: inline-block;
+            height: 6px;
+            width: 6px;
+            margin: 0 1px;
+        }
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+        @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        
+        /* Image Preview */
+        .img-preview {
+            width: 40px; height: 40px; object-fit: cover; border-radius: 8px; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body id="app-body" class="theme-work h-screen flex flex-col overflow-hidden transition-all duration-700">
+
+    <!-- Top Nav -->
+    <nav class="w-full h-16 glass flex justify-between items-center px-6 z-50 shadow-sm relative transition-colors duration-500" id="navbar">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-lg shadow-lg">N</div>
+            <span class="font-bold text-xl tracking-tight" id="app-title">NEXUS <span class="text-xs font-normal opacity-60 ml-1">PRO</span></span>
+        </div>
+
+        <div class="flex items-center bg-gray-200/50 rounded-full p-1 border border-gray-300/50">
+            <button onclick="setMode('work')" id="btn-mode-work" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-md bg-white text-blue-600">
+                <i class="fas fa-briefcase mr-1"></i> WORK
+            </button>
+            <button onclick="setMode('life')" id="btn-mode-life" class="px-4 py-1.5 rounded-full text-xs font-bold transition-all text-gray-500 hover:text-gray-700">
+                <i class="fas fa-cocktail mr-1"></i> LIFE
+            </button>
+        </div>
+
+        <button onclick="toggleSettings()" class="opacity-70 hover:opacity-100 transition-opacity">
+            <i class="fas fa-cog text-xl"></i>
+        </button>
+    </nav>
+
+    <!-- Main Layout -->
+    <main class="flex-1 flex overflow-hidden relative">
+        
+        <!-- Sidebar -->
+        <aside id="sidebar" class="w-64 glass flex flex-col border-r border-white/20 transition-all duration-500 hidden md:flex">
+            <div class="p-4">
+                <h3 class="text-xs font-bold uppercase opacity-50 mb-3 tracking-wider">Active Tools</h3>
+                <div id="tools-container" class="space-y-2"></div>
+            </div>
+            <div class="mt-auto p-4 border-t border-white/10">
+                <div class="flex items-center gap-2 text-xs opacity-60">
+                    <i class="fab fa-google"></i>
+                    <span>Connected to Search</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Chat Area -->
+        <section class="flex-1 flex flex-col relative">
+            <div id="chat-display" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth hide-scroll">
+                <div class="flex flex-col items-center justify-center h-full text-center opacity-60" id="welcome-screen">
+                    <div class="text-6xl mb-4 transition-transform duration-500" id="welcome-icon">💼</div>
+                    <h2 class="text-2xl font-bold mb-2">Nexus Pro</h2>
+                    <p class="max-w-md text-sm mb-4">I can see images and search the web.</p>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 glass m-4 rounded-2xl shadow-lg border border-white/40 flex items-center gap-2 transition-all duration-300 focus-within:ring-2 ring-blue-400/50 relative" id="input-container">
+                
+                <!-- Image Upload -->
+                <input type="file" id="file-input" class="hidden" accept="image/*" onchange="handleImageUpload()">
+                <button onclick="document.getElementById('file-input').click()" class="w-10 h-10 rounded-full hover:bg-black/5 flex items-center justify-center transition-colors text-gray-500 relative group" title="Upload Image">
+                    <i class="fas fa-camera"></i>
+                </button>
+
+                <!-- Image Preview Bubble -->
+                <div id="image-preview-container" class="hidden absolute -top-14 left-4 bg-white p-1 rounded-lg shadow-lg animate-fade-in border border-gray-200">
+                    <img id="image-preview" src="" class="h-12 w-12 object-cover rounded">
+                    <button onclick="clearImage()" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center shadow-sm hover:bg-red-600 transition-colors">&times;</button>
+                </div>
+
+                <textarea id="user-input" rows="1" placeholder="Ask me anything..." class="flex-1 bg-transparent border-none outline-none resize-none max-h-32 py-2 px-2 text-base"></textarea>
+                
+                <button onclick="handleSend()" id="send-btn" class="w-10 h-10 rounded-full bg-blue-600 text-white shadow-lg hover:scale-105 transition-transform flex items-center justify-center">
+                    <i class="fas fa-arrow-up"></i>
+                </button>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6 animate-fade-in">
+            <h2 class="text-xl font-bold mb-4 text-slate-800">System Settings</h2>
+            <label class="block text-sm font-bold text-slate-600 mb-2">Gemini API Key</label>
+            <input type="password" id="api-key-input" class="w-full p-3 bg-slate-100 rounded-lg outline-none border border-transparent focus:border-blue-500 focus:bg-white transition-all mb-2 font-mono text-sm" placeholder="Paste AIza... key here">
+            <p class="text-xs text-slate-400 mb-6">Key is stored locally. Ensure your key has Google Search access enabled in Google AI Studio.</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="toggleSettings()" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-100 rounded-lg">Cancel</button>
+                <button onclick="saveSettings()" class="px-4 py-2 bg-slate-900 text-white font-bold rounded-lg shadow-lg hover:bg-black">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- TOOLS CONFIGURATION (All Old + New Features) ---
+        const TOOLS = {
+            work: [
+                { id: 'chat', icon: 'fa-comments', name: 'Pro Assistant', prompt: "You are a professional Executive Assistant. You have access to Google Search to provide up-to-date information. If the user asks about current events, use the search tool. Be concise." },
+                { id: 'email', icon: 'fa-envelope-open-text', name: 'Email Polisher', prompt: "You are an expert communications director. The user will provide a rough draft or bullet points. You will rewrite it into a polished, professional email. Provide 3 options: 1. Standard Professional, 2. Friendly/Warm, 3. Assertive/Direct." },
+                { id: 'task', icon: 'fa-tasks', name: 'Task Atomizer', prompt: "You are a project manager. The user will provide a large, vague goal. Break it down into 5-10 small, actionable, chronological steps. Format as a checklist." },
+                { id: 'analyze', icon: 'fa-chart-pie', name: 'Data Analyst (Vision)', prompt: "You are a Data Analyst. The user may upload images of charts, tables, or whiteboards. Analyze them and find key trends. If no image is provided, ask for one." }
+            ],
+            life: [
+                { id: 'chat', icon: 'fa-hand-sparkles', name: 'Life Companion', prompt: "You are a supportive, creative friend. You can see images and search the web. Be conversational." },
+                { id: 'chef', icon: 'fa-utensils', name: 'Fridge Forager (Vision)', prompt: "The user may upload a photo of their fridge/pantry OR list ingredients. Identify the food items and suggest 2 delicious recipes. Include brief instructions." },
+                { id: 'trip', icon: 'fa-plane', name: 'Trip Planner (Live)', prompt: "Plan a weekend itinerary. Use Google Search to check the current weather and find real events happening now. Focus on hidden gems." },
+                { id: 'explain', icon: 'fa-child', name: 'Explain Like I\'m 5', prompt: "Explain the complex topic the user provides as if speaking to a curious 5-year-old. Use analogies involving toys, animals, or candy." }
+            ]
+        };
+
+        // --- STATE ---
+        let currentMode = 'work';
+        let currentTool = TOOLS.work[0];
+        let currentImageBase64 = null;
+        let currentImageMime = null;
+
+        // --- INIT ---
+        window.onload = () => {
+            const key = localStorage.getItem('nexus_api_key');
+            if(!key) document.getElementById('settings-modal').classList.remove('hidden');
+            renderTools();
+        };
+
+        // --- CORE FUNCTIONS ---
+
+        function setMode(mode) {
+            currentMode = mode;
+            const body = document.getElementById('app-body');
+            const nav = document.getElementById('navbar');
+            const title = document.getElementById('app-title');
+            const welcomeIcon = document.getElementById('welcome-icon');
+            const btnWork = document.getElementById('btn-mode-work');
+            const btnLife = document.getElementById('btn-mode-life');
+
+            if (mode === 'work') {
+                body.className = 'theme-work h-screen flex flex-col overflow-hidden transition-all duration-700';
+                nav.classList.remove('glass-dark');
+                nav.classList.add('glass');
+                nav.style.color = '#1e293b';
+                title.innerHTML = 'NEXUS <span class="text-xs font-normal opacity-60 ml-1">PRO WORK</span>';
+                welcomeIcon.innerText = '💼';
+                btnWork.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-md bg-white text-blue-600";
+                btnLife.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all text-gray-500 hover:text-gray-700";
+                document.getElementById('sidebar').classList.remove('glass-dark');
+                document.getElementById('sidebar').classList.add('glass');
+                document.getElementById('send-btn').classList.replace('bg-pink-600', 'bg-blue-600');
+            } else {
+                body.className = 'theme-life h-screen flex flex-col overflow-hidden transition-all duration-700';
+                nav.classList.remove('glass');
+                nav.classList.add('glass-dark');
+                nav.style.color = 'white';
+                title.innerHTML = 'NEXUS <span class="text-xs font-normal opacity-60 ml-1">PRO LIFE</span>';
+                welcomeIcon.innerText = '🍹';
+                btnWork.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all text-white/50 hover:text-white";
+                btnLife.className = "px-4 py-1.5 rounded-full text-xs font-bold transition-all shadow-md bg-white text-pink-600";
+                document.getElementById('sidebar').classList.remove('glass');
+                document.getElementById('sidebar').classList.add('glass-dark');
+                document.getElementById('send-btn').classList.replace('bg-blue-600', 'bg-pink-600');
+            }
+            renderTools();
+        }
+
+        function renderTools() {
+            const container = document.getElementById('tools-container');
+            container.innerHTML = '';
+            const toolSet = TOOLS[currentMode];
+            currentTool = toolSet[0];
+
+            toolSet.forEach(tool => {
+                const btn = document.createElement('button');
+                const activeClass = currentMode === 'work' ? 'bg-blue-100 text-blue-700' : 'bg-white/20 text-white';
+                const inactiveClass = currentMode === 'work' ? 'hover:bg-gray-100 text-slate-600' : 'hover:bg-white/10 text-white/70';
+                btn.className = `w-full text-left p-3 rounded-xl flex items-center gap-3 transition-all ${tool.id === currentTool.id ? activeClass : inactiveClass}`;
+                btn.onclick = () => selectTool(tool, btn);
+                btn.innerHTML = `<i class="fas ${tool.icon} w-5 text-center"></i> <span class="font-medium text-sm">${tool.name}</span>`;
+                container.appendChild(btn);
+            });
+        }
+
+        function selectTool(tool, btnElement) {
+            currentTool = tool;
+            renderTools();
+            const chat = document.getElementById('chat-display');
+            document.getElementById('welcome-screen').style.display = 'none';
+            const note = document.createElement('div');
+            note.className = 'text-center text-xs opacity-50 my-4 uppercase tracking-widest font-bold';
+            note.innerText = `Switched to: ${tool.name}`;
+            chat.appendChild(note);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        // --- IMAGE HANDLING ---
+        function handleImageUpload() {
+            const file = document.getElementById('file-input').files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                currentImageBase64 = e.target.result.split(',')[1];
+                currentImageMime = file.type;
+                document.getElementById('image-preview').src = e.target.result;
+                document.getElementById('image-preview-container').classList.remove('hidden');
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function clearImage() {
+            currentImageBase64 = null;
+            currentImageMime = null;
+            document.getElementById('file-input').value = '';
+            document.getElementById('image-preview-container').classList.add('hidden');
+        }
+
+        // --- API & MESSAGING ---
+        async function handleSend() {
+            const input = document.getElementById('user-input');
+            const text = input.value.trim();
+            if(!text && !currentImageBase64) return;
+
+            // UI Updates
+            input.value = '';
+            resizeTextarea(input);
+            document.getElementById('welcome-screen').style.display = 'none';
+            
+            // Add User Message (With Image Preview if exists)
+            addMessage(text, 'user', currentImageBase64 ? document.getElementById('image-preview').src : null);
+            
+            // Clear image from state immediately after sending
+            const imgData = currentImageBase64;
+            const imgMime = currentImageMime;
+            clearImage();
+
+            const loaderId = addLoader();
+            const apiKey = localStorage.getItem('nexus_api_key');
+
+            if(!apiKey) {
+                removeLoader(loaderId);
+                addMessage("Error: API Key missing.", 'ai');
+                return;
+            }
+
+            try {
+                const response = await fetchGemini(text, currentTool.prompt, apiKey, imgData, imgMime);
+                removeLoader(loaderId);
+                addMessage(response, 'ai');
+            } catch (err) {
+                console.error(err);
+                removeLoader(loaderId);
+                addMessage("Error connecting to AI. Please try again.", 'ai');
+            }
+        }
+
+        async function fetchGemini(userText, systemText, key, base64Image, mimeType) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${key}`;
+            
+            // Construct Parts
+            const parts = [];
+            if (userText) parts.push({ text: userText });
+            if (base64Image) {
+                parts.push({
+                    inlineData: {
+                        mimeType: mimeType,
+                        data: base64Image
+                    }
+                });
+            }
+
+            const payload = {
+                contents: [{ role: "user", parts: parts }],
+                systemInstruction: { parts: [{ text: systemText }] },
+                // Enable Google Search Grounding
+                tools: [{ googleSearch: {} }] 
+            };
+
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) throw new Error(res.statusText);
+
+            const data = await res.json();
+            
+            // Handle Grounding Metadata (Sources)
+            let responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || "No response.";
+            const grounding = data.candidates?.[0]?.groundingMetadata;
+            
+            if (grounding && grounding.groundingChunks) {
+                responseText += "\n\n**Sources:**\n";
+                grounding.groundingChunks.forEach(chunk => {
+                   if (chunk.web && chunk.web.title) {
+                       responseText += `- [${chunk.web.title}](${chunk.web.uri})\n`;
+                   }
+                });
+            }
+            
+            return responseText;
+        }
+
+        function addMessage(text, sender, imgSrc) {
+            const chat = document.getElementById('chat-display');
+            const div = document.createElement('div');
+            
+            if(sender === 'user') {
+                div.className = 'flex justify-end animate-fade-in';
+                let imgHtml = imgSrc ? `<img src="${imgSrc}" class="max-w-[150px] rounded-lg mb-2 border border-white/20">` : '';
+                div.innerHTML = `
+                    <div class="flex flex-col items-end max-w-[80%]">
+                        ${imgHtml}
+                        ${text ? `<div class="bg-slate-800 text-white px-4 py-2 rounded-2xl rounded-tr-sm shadow-md text-sm leading-relaxed">${escapeHtml(text)}</div>` : ''}
+                    </div>
+                `;
+            } else {
+                div.className = 'flex justify-start animate-fade-in';
+                const parsed = marked.parse(text);
+                const bubbleColor = currentMode === 'work' ? 'bg-white text-slate-800' : 'bg-white/20 text-white backdrop-blur-md';
+                div.innerHTML = `
+                    <div class="${bubbleColor} px-5 py-4 rounded-2xl rounded-tl-sm max-w-[90%] shadow-sm text-sm leading-relaxed border border-white/10 prose prose-sm ${currentMode === 'life' ? 'prose-invert' : ''}">
+                        ${parsed}
+                    </div>
+                `;
+            }
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function addLoader() {
+            const chat = document.getElementById('chat-display');
+            const id = 'loader-' + Date.now();
+            const div = document.createElement('div');
+            div.id = id;
+            div.className = 'flex justify-start animate-fade-in';
+            div.innerHTML = `<div class="bg-transparent px-4 py-2 rounded-2xl text-slate-400 text-xs flex items-center gap-1">Thinking<span class="typing-dot">.</span><span class="typing-dot">.</span><span class="typing-dot">.</span></div>`;
+            chat.appendChild(div);
+            chat.scrollTop = chat.scrollHeight;
+            return id;
+        }
+
+        function removeLoader(id) { const el = document.getElementById(id); if(el) el.remove(); }
+        function toggleSettings() { 
+            document.getElementById('settings-modal').classList.toggle('hidden'); 
+            const key = localStorage.getItem('nexus_api_key');
+            if(key) document.getElementById('api-key-input').value = key;
+        }
+        function saveSettings() {
+            const key = document.getElementById('api-key-input').value.trim();
+            if(key) { localStorage.setItem('nexus_api_key', key); toggleSettings(); }
+        }
+        
+        // Utils
+        const tx = document.getElementById('user-input');
+        tx.addEventListener("input", () => resizeTextarea(tx));
+        tx.addEventListener("keydown", (e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } });
+        function resizeTextarea(el) { el.style.height = "auto"; el.style.height = (el.scrollHeight) + "px"; }
+        function escapeHtml(text) { return text.replace(/[&<>"']/g, function(m) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m]; }); }
+    </script>
+</body>
+</html>
